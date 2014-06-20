@@ -1,0 +1,316 @@
+#!/bin/bash
+
+# zync version 3
+
+# colors
+C_BROWN="\e[0;33m"
+C_YELLOW="\e[1;33m"
+
+C_RED="\e[0;31m"
+C_REDL="\e[1;31m"
+
+C_PURPLE="\e[0;35m"
+C_PURPLEL="\e[1;35m"
+
+C_BLUE="\e[0;34m"
+C_BLUEL="\e[1;34m"
+
+C_GREEN="\e[0;32m"
+C_GREENL="\e[1;32m"
+C_LIME="\e[1;32m"
+
+C_CYAN="\e[0;36m"
+C_CYANL="\e[1;36m"
+
+C_BLACK="\e[0;30m"
+C_GRAY="\e[1;30m"
+C_GRAYL="\e[0;37m"
+C_WHITE="\e[1;37m"
+
+C_NONE="\e[0m"
+
+function GOOD {
+	echo -e "$C_GREEN""$1""$C_NONE"
+}
+
+function BAD {
+	echo -e "$C_RED""$1""$C_NONE" 1>&2
+}
+
+function BLUE {
+	echo -e "$C_BLUEL""$1""$C_NONE"
+}
+
+function PURPLE {
+	echo -e "$C_PURPLE""$1""$C_NONE"
+}
+
+function GREEN {
+	echo -e "$C_GREEN""$1""$C_NONE"
+}
+
+function YELLOW {
+	echo -e "$C_YELLOW""$1""$C_NONE"
+}
+
+function GRAY {
+	echo -e "$C_GRAYL""$1""$C_NONE"
+}
+
+if [ "$COPYRIGHT" == "1" ]; then PURPLE "\nSSH file transfer script, © MightyPork, 2013"; fi
+
+if [ "$1" == "cfg" ]; then
+	
+	GOOD "\nCreating config file zync.cfg\n"
+
+	echo -e "PORT=22\nPASS=\"password\"\nUSER=\"root\"\nADDR=\"127.0.0.1\"\n\n# remote dir should start and end with slash\nREMOTE_DIR=\"/\"\nLOCAL_DIR=\"remote\"\n\nVERBOSE=1\nCOPYRIGHT=1" > "zync.cfg"
+
+	exit 0
+fi
+
+if [ ! -f ./zync.cfg ]
+then
+    BAD "\nConfig file does not exist, use the \"cfg\" argument to create it!\n";
+    exit 1
+fi
+
+. zync.cfg
+
+mkdir -p ./$LOCAL_DIR
+
+#
+# $1 - action (pull, push)
+# $2 - type (file, dir, tree)
+# $3 - path
+#
+
+BADARGS=0
+
+if [ -z "$1" ]; then
+	BAD "\nERROR: Mising arguments.\n"
+	BADARGS=1;
+fi
+if [ "$1" == "pull" -o "$1" == "push" -o "$1" == "get" -o "$1" == "send" ] && [ -z "$2" -o -z "$3" ]; then
+	BAD "\nERROR: Mising TYPE or PATH arguments.\n"
+	BADARGS=1;
+fi
+
+if [ "$BADARGS" == "1" ] || [ "$1" == "-h" ] || [ "$1" == "help" ] || [ "$1" == "--help" ]; then
+	echo "Config file: ./zync.cfg"
+	echo "Working dir: ./$LOCAL_DIR""$REMOTE_DIR"
+	echo "Remote dir: $REMOTE_DIR"
+	echo ""
+	GREEN "Usage 1"
+	BLUE "$ zync cfg"
+	YELLOW "- create config file"
+	echo ""
+	BLUE "$ zync probe"
+	YELLOW "- connect interactively to SSH, so you can accept the certificate"
+	echo ""
+	GREEN "Usage 2"
+	BLUE "$ zync ACTION PATH"
+	YELLOW "- perform some action on remote path"
+	echo "  ACTION = ls, rm, rmdir, mkdir"
+	echo "  PATH   = remote path, relative to $REMOTE_DIR"
+	echo ""
+	GREEN "Usage 3"
+	BLUE "$ zync ACTION TYPE PATH"
+	YELLOW "- get or send file from/to remote host"
+	echo "  ACTION = pull, push (or get, send), or update (= overwrite local copy)"
+	echo "  TYPE   = file, dir, tree (= recursive)"
+	echo "  PATH   = remote path, relative to $REMOTE_DIR"
+	echo ""
+
+	exit
+fi
+
+TASK="$1"
+
+# has only 2 args
+if [ -z "$3" ]; then
+
+	if [ "$TASK" == "probe" ]; then
+		GOOD "\nConnecting to $USER@$ADDR:$PORT via SSH...\n"
+		GOOD "* Accept certificate and enter password \"$PASS\" *"
+		ssh $USER@$ADDR -p $PORT
+		GOOD "\nDone.\n"
+		exit
+	fi
+	
+	if [ "$TASK" == "ssh" ] || [ "$TASK" == "-i" ]; then
+		GOOD "\nConnecting to $USER:$PASS@$ADDR:$PORT via SSH...\n"
+		sshpass -p $PASS ssh $USER@$ADDR -p $PORT
+		GOOD "\nDone.\n"
+		exit
+	fi
+
+	FILE="$2" # for 2-argument commands
+	if [ -z "$FILE" ]; then
+		BAD "\nMissing FILE argument for ACTION '$TASK'!\n"
+		exit
+	fi
+
+	case $TASK in
+		"ls" | "list")
+			if [ "$VERBOSE" == "1" ]; then GOOD "\nGetting remote list of $REMOTE_DIR$FILE\n"; fi
+			sshpass -p $PASS ssh -p $PORT $USER@$ADDR "ls -pLvC --color=always $REMOTE_DIR$FILE"
+			if [ "$VERBOSE" == "1" ]; then echo ""; fi
+			;;
+
+		"rm" | "del")
+			if [ "$VERBOSE" == "1" ]; then GOOD "\nDeleting remote file $REMOTE_DIR$FILE\n"; fi
+			sshpass -p $PASS ssh -p $PORT $USER@$ADDR "rm $REMOTE_DIR$FILE"
+			;;
+
+		"rmdir")
+			if [ "$VERBOSE" == "1" ]; then GOOD "\nDeleting remote folder $REMOTE_DIR$FILE\n"; fi
+			sshpass -p $PASS ssh -p $PORT $USER@$ADDR "rmdir $REMOTE_DIR$FILE"
+			;;
+
+		"mkdir")
+			if [ "$VERBOSE" == "1" ]; then GOOD "\nCreating remote folder $REMOTE_DIR$FILE\n"; fi
+			sshpass -p $PASS ssh -p $PORT $USER@$ADDR "mkdir -p $REMOTE_DIR$FILE"
+			;;
+
+		*)
+			BAD "\nInvalid ACTION '$TASK', or missing TYPE argument!\n";
+			;;
+
+	esac
+
+	if [ "$VERBOSE" == "1" ]; then GOOD "Done.\n"; fi
+
+	exit
+fi
+
+# 3-argument commands
+TYPE="$2"
+FILE="$3"
+
+if [ "$VERBOSE" == "1" ]; then
+	GOOD "\nSync..."
+	echo -e "  SSH = $USER:$PASS@$ADDR:$PORT"
+	echo -e "  CMD = $TASK $TYPE $REMOTE_DIR$FILE\n"
+fi
+
+# flag that target file or directory should be emptied first
+REPL=0
+
+if [ "$TASK" == "update" ]; then
+	REPL=1
+	TASK="get"
+fi;
+
+case "$TASK" in
+
+	"pull" | "get")
+		
+		case "$TYPE" in
+			"file")
+
+				# download single file
+				mkdir -p ./$LOCAL_DIR$(dirname "$REMOTE_DIR$FILE")
+
+				if [ "$VERBOSE" == "1" ]; then GOOD "\nGetting remote file $REMOTE_DIR$FILE\n"; fi
+
+				sshpass -p $PASS scp -p -C -P $PORT $USER@$ADDR:$REMOTE_DIR$FILE ./$LOCAL_DIR$REMOTE_DIR$FILE
+
+				;;
+			
+			"dir")
+
+				# download directory
+				mkdir -p ./$LOCAL_DIR$REMOTE_DIR$FILE
+
+				if [ "$REPL" == "1" ]; then
+					if [ "$VERBOSE" == "1" ]; then GOOD "\nErasing old files in ./$LOCAL_DIR$REMOTE_DIR$FILE\n"; fi
+					rm ./$LOCAL_DIR$REMOTE_DIR$FILE/*
+				fi
+
+				if [ "$VERBOSE" == "1" ]; then GOOD "\nGetting remote files from $REMOTE_DIR$FILE\n"; fi
+
+				sshpass -p $PASS scp -p -C -P $PORT $USER@$ADDR:$REMOTE_DIR$FILE/* ./$LOCAL_DIR$REMOTE_DIR$FILE
+
+				;;
+			
+			"tree")
+
+				# download directory R
+				mkdir -p ./$LOCAL_DIR$REMOTE_DIR$FILE
+
+				if [ "$REPL" == "1" ]; then
+					if [ "$VERBOSE" == "1" ]; then GOOD "\nErasing old files in ./$LOCAL_DIR$REMOTE_DIR$FILE\n"; fi
+					rm -r ./$LOCAL_DIR$REMOTE_DIR$FILE/*
+				fi
+
+				if [ "$VERBOSE" == "1" ]; then GOOD "\nGetting remote contents of $REMOTE_DIR$FILE\n"; fi
+
+				sshpass -p $PASS scp -p -C -P $PORT -r $USER@$ADDR:$REMOTE_DIR$FILE ./$LOCAL_DIR$(dirname $REMOTE_DIR$FILE)
+
+				;;
+
+			*)
+				BAD "\nInvalid TYPE '$TYPE'!\n";
+				;;
+		esac
+		
+		;;
+
+	"push" | "send")
+		
+		case "$TYPE" in
+			"file")
+
+				# send single file
+
+				if [ "$VERBOSE" == "1" ]; then GOOD "\nSending local file to $REMOTE_DIR$FILE\n"; fi
+
+				
+				if [ ! -f ./$LOCAL_DIR$REMOTE_DIR$FILE ]
+				then
+					BAD "\nLocal file does not exist!\n";
+					exit
+				fi
+				
+				sshpass -p $PASS ssh -p $PORT $USER@$ADDR "mkdir -p $(dirname $REMOTE_DIR$FILE)";
+				sshpass -p $PASS scp -p -C -P $PORT ./$LOCAL_DIR$REMOTE_DIR$FILE $USER@$ADDR:$(dirname $REMOTE_DIR$FILE)
+
+				;;
+			
+			"dir")
+
+				# send directory
+				mkdir -p ./$LOCAL_DIR$REMOTE_DIR$FILE
+
+				if [ "$VERBOSE" == "1" ]; then GOOD "\nSending local files to $REMOTE_DIR$FILE\n"; fi
+
+				sshpass -p $PASS ssh -p $PORT $USER@$ADDR "mkdir -p $REMOTE_DIR$FILE";
+				sshpass -p $PASS scp -p -C -P $PORT ./$LOCAL_DIR$REMOTE_DIR$FILE/* $USER@$ADDR:$REMOTE_DIR$FILE
+
+				;;
+			
+			"tree")
+
+				# send directory R
+				mkdir -p ./$LOCAL_DIR$REMOTE_DIR$FILE
+
+				if [ "$VERBOSE" == "1" ]; then GOOD "\nSending local contents to $REMOTE_DIR$FILE\n"; fi
+
+				sshpass -p $PASS scp -p -C -P $PORT -r ./$LOCAL_DIR$REMOTE_DIR$FILE $USER@$ADDR:$(dirname $REMOTE_DIR$FILE)
+
+				;;
+
+			*)
+				BAD "\nInvalid TYPE '$TYPE'!\n";
+				;;
+		esac
+		
+		;;
+
+	*)
+		BAD "\nInvalid ACTION, use one of pull, get, push, send.\n";
+		exit
+		;;
+esac
+
+if [ "$VERBOSE" == "1" ]; then GOOD "Done.\n"; fi

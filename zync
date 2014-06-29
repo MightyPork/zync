@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# zync version 3
+# zync version 4
 
 # colors
 C_BROWN="\e[0;33m"
@@ -57,7 +57,7 @@ function GRAY {
 	echo -e "$C_GRAYL""$1""$C_NONE"
 }
 
-if [ "$COPYRIGHT" == "1" ]; then PURPLE "\nSSH file transfer script, © MightyPork, 2013"; fi
+if [ "$COPYRIGHT" == "1" ]; then PURPLE "\nSSH file transfer script, © MightyPork, 2013-2014"; fi
 
 if [ "$1" == "cfg" ]; then
 	
@@ -70,7 +70,7 @@ fi
 
 if [ ! -f ./zync.cfg ]
 then
-    BAD "\nConfig file does not exist, use the \"cfg\" argument to create it!\n";
+    BAD "\nConfig file does not exist, use the \"cfg\" command to create it!\n";
     exit 1
 fi
 
@@ -138,7 +138,7 @@ if [ -z "$3" ]; then
 	fi
 	
 	if [ "$TASK" == "ssh" ] || [ "$TASK" == "-i" ]; then
-		GOOD "\nConnecting to $USER:$PASS@$ADDR:$PORT via SSH...\n"
+		GOOD "\nConnecting to $USER@$ADDR:$PORT via SSH...\n"
 		sshpass -p $PASS ssh $USER@$ADDR -p $PORT
 		GOOD "\nDone.\n"
 		exit
@@ -188,8 +188,8 @@ TYPE="$2"
 FILE="$3"
 
 if [ "$VERBOSE" == "1" ]; then
-	GOOD "\nSync..."
-	echo -e "  SSH = $USER:$PASS@$ADDR:$PORT"
+	GOOD "\nZync."
+	echo -e "  SSH = $USER@$ADDR:$PORT"
 	echo -e "  CMD = $TASK $TYPE $REMOTE_DIR$FILE\n"
 fi
 

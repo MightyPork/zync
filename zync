@@ -60,7 +60,7 @@ function GRAY {
 if [ "$COPYRIGHT" == "1" ]; then PURPLE "\nSSH file transfer script, © MightyPork, 2013"; fi
 
 if [ "$1" == "cfg" ]; then
-	
+
 	GOOD "\nCreating config file zync.cfg\n"
 
 	echo -e "PORT=22\nPASS=\"password\"\nUSER=\"root\"\nADDR=\"127.0.0.1\"\n\n# remote dir should start and end with slash\nREMOTE_DIR=\"/\"\nLOCAL_DIR=\"remote\"\n\nVERBOSE=1\nCOPYRIGHT=1" > "zync.cfg"
@@ -136,9 +136,9 @@ if [ -z "$3" ]; then
 		GOOD "\nDone.\n"
 		exit
 	fi
-	
+
 	if [ "$TASK" == "ssh" ] || [ "$TASK" == "-i" ]; then
-		GOOD "\nConnecting to $USER:$PASS@$ADDR:$PORT via SSH...\n"
+		GOOD "\nConnecting to $USER@$ADDR:$PORT via SSH...\n"
 		sshpass -p $PASS ssh $USER@$ADDR -p $PORT
 		GOOD "\nDone.\n"
 		exit
@@ -189,7 +189,7 @@ FILE="$3"
 
 if [ "$VERBOSE" == "1" ]; then
 	GOOD "\nSync..."
-	echo -e "  SSH = $USER:$PASS@$ADDR:$PORT"
+	echo -e "  SSH = $USER@$ADDR:$PORT"
 	echo -e "  CMD = $TASK $TYPE $REMOTE_DIR$FILE\n"
 fi
 
@@ -204,7 +204,7 @@ fi;
 case "$TASK" in
 
 	"pull" | "get")
-		
+
 		case "$TYPE" in
 			"file")
 
@@ -216,7 +216,7 @@ case "$TASK" in
 				sshpass -p $PASS scp -p -C -P $PORT $USER@$ADDR:$REMOTE_DIR$FILE ./$LOCAL_DIR$REMOTE_DIR$FILE
 
 				;;
-			
+
 			"dir")
 
 				# download directory
@@ -232,7 +232,7 @@ case "$TASK" in
 				sshpass -p $PASS scp -p -C -P $PORT $USER@$ADDR:$REMOTE_DIR$FILE/* ./$LOCAL_DIR$REMOTE_DIR$FILE
 
 				;;
-			
+
 			"tree")
 
 				# download directory R
@@ -253,11 +253,11 @@ case "$TASK" in
 				BAD "\nInvalid TYPE '$TYPE'!\n";
 				;;
 		esac
-		
+
 		;;
 
 	"push" | "send")
-		
+
 		case "$TYPE" in
 			"file")
 
@@ -265,18 +265,31 @@ case "$TASK" in
 
 				if [ "$VERBOSE" == "1" ]; then GOOD "\nSending local file to $REMOTE_DIR$FILE\n"; fi
 
-				
-				if [ ! -f ./$LOCAL_DIR$REMOTE_DIR$FILE ]
+				PTH="./$LOCAL_DIR$REMOTE_DIR$FILE"
+
+				if [ ! -f "$PTH" ]
 				then
 					BAD "\nLocal file does not exist!\n";
 					exit
 				fi
-				
+
+				if [[ "$PTH" == *.php ]]
+				then
+					php -l "$PTH" > /dev/null
+
+					if [[ $? != 0 ]]
+					then
+						BAD "\nFile has errors!\n";
+						exit
+					fi
+				fi
+
+
 				sshpass -p $PASS ssh -p $PORT $USER@$ADDR "mkdir -p $(dirname $REMOTE_DIR$FILE)";
-				sshpass -p $PASS scp -p -C -P $PORT ./$LOCAL_DIR$REMOTE_DIR$FILE $USER@$ADDR:$(dirname $REMOTE_DIR$FILE)
+				sshpass -p $PASS scp -p -C -P $PORT $PTH $USER@$ADDR:$(dirname $REMOTE_DIR$FILE)
 
 				;;
-			
+
 			"dir")
 
 				# send directory
@@ -288,7 +301,7 @@ case "$TASK" in
 				sshpass -p $PASS scp -p -C -P $PORT ./$LOCAL_DIR$REMOTE_DIR$FILE/* $USER@$ADDR:$REMOTE_DIR$FILE
 
 				;;
-			
+
 			"tree")
 
 				# send directory R
@@ -304,7 +317,7 @@ case "$TASK" in
 				BAD "\nInvalid TYPE '$TYPE'!\n";
 				;;
 		esac
-		
+
 		;;
 
 	*)

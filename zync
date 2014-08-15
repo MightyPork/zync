@@ -188,7 +188,7 @@ TYPE="$2"
 FILE="$3"
 
 if [ "$VERBOSE" == "1" ]; then
-	GOOD "\nZync."
+	GOOD "\nZync task:"
 	echo -e "  SSH = $USER@$ADDR:$PORT"
 	echo -e "  CMD = $TASK $TYPE $REMOTE_DIR$FILE\n"
 fi

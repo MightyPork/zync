@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# zync version 3
+# zync version 5
 
 # colors
 C_BROWN="\e[0;33m"
@@ -57,7 +57,7 @@ function GRAY {
 	echo -e "$C_GRAYL""$1""$C_NONE"
 }
 
-if [ "$COPYRIGHT" == "1" ]; then PURPLE "\nSSH file transfer script, © MightyPork, 2013"; fi
+if [ "$COPYRIGHT" == "1" ]; then PURPLE "\nSSH file transfer script, © MightyPork, 2013-2014"; fi
 
 if [ "$1" == "cfg" ]; then
 
@@ -70,7 +70,7 @@ fi
 
 if [ ! -f ./zync.cfg ]
 then
-    BAD "\nConfig file does not exist, use the \"cfg\" argument to create it!\n";
+    BAD "\nConfig file does not exist, use the \"cfg\" command to create it!\n";
     exit 1
 fi
 
@@ -188,7 +188,7 @@ TYPE="$2"
 FILE="$3"
 
 if [ "$VERBOSE" == "1" ]; then
-	GOOD "\nSync..."
+	GOOD "\nZync."
 	echo -e "  SSH = $USER@$ADDR:$PORT"
 	echo -e "  CMD = $TASK $TYPE $REMOTE_DIR$FILE\n"
 fi
